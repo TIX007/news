@@ -61,14 +61,55 @@ export default function RoleList() {
             title: '你确定要删除?',
             icon: <ExclamationCircleOutlined />,
             onOk() {
-                console.log('OK');
-                // deleteMethod(item)
+                // console.log('OK');
+                deleteMethod(item)
             },
             onCancel() {
                 console.log('Cancel');
             },
         });
 
+    }
+
+    //删除
+    const deleteMethod = (item) => {
+        // console.log(item)
+        setdataSource(dataSource.filter(data => data.id !== item.id))
+        axios.delete(`/roles/${item.id}`)
+    }
+
+    useEffect(() => {
+        axios.get("/roles").then(res => {
+            // console.log(res.data)
+            setdataSource(res.data)
+        })
+    }, [])
+
+    useEffect(() => {
+        axios.get("/rights?_embed=children").then(res => {
+            // console.log(res.data)
+            setRightList(res.data)
+        })
+    }, [])
+
+    const handleOk = () => {
+        console.log(currentRights, currentId)
+        setisModalVisible(false)
+        //同步datasource
+        setdataSource(dataSource.map(item => {
+            if (item.id === currentId) {
+                return {
+                    ...item,
+                    rights: currentRights
+                }
+            }
+            return item
+        }))
+        //patch
+
+        axios.patch(`/roles/${currentId}`, {
+            rights: currentRights
+        })
     }
 
     return (
