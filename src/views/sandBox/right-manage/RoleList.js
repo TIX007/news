@@ -6,6 +6,10 @@ const { confirm } = Modal
 
 export default function RoleList() {
     const [dataSource, setdataSource] = useState([])
+    const [rightList, setRightList] = useState([])
+    const [currentRights, setcurrentRights] = useState([])
+    const [currentId, setcurrentId] = useState(0)
+    const [isModalVisible, setisModalVisible] = useState(false)
 
     useEffect(() => {
         axios.get("http://localhost:5000/roles").then(res => {
@@ -13,21 +17,6 @@ export default function RoleList() {
             setdataSource(res.data)
         })
     }, [])
-
-    // const dataSource = [
-    //     {
-    //         id: '1',
-    //         roleName: '胡彦斌',
-    //         age: 32,
-    //         address: '西湖区湖底公园1号',
-    //     },
-    //     {
-    //         id: '2',
-    //         roleName: '胡彦祖',
-    //         age: 42,
-    //         address: '西湖区湖底公园1号',
-    //     },
-    // ];
 
     const columns = [
         {
@@ -46,11 +35,11 @@ export default function RoleList() {
             render: (item) => {
                 return <div>
                     <Button danger shape="circle" icon={<DeleteOutlined />} onClick={() => confirmMethod(item)} />
-                    {/* <Button type="primary" shape="circle" icon={<EditOutlined />} onClick={() => {
+                    <Button type="primary" shape="circle" icon={<EditOutlined />} onClick={() => {
                         setisModalVisible(true)
                         setcurrentRights(item.rights)
                         setcurrentId(item.id)
-                    }} /> */}
+                    }} />
                 </div>
             }
         }
@@ -79,14 +68,14 @@ export default function RoleList() {
     }
 
     useEffect(() => {
-        axios.get("/roles").then(res => {
+        axios.get("http://localhost:5000/roles").then(res => {
             // console.log(res.data)
             setdataSource(res.data)
         })
     }, [])
 
     useEffect(() => {
-        axios.get("/rights?_embed=children").then(res => {
+        axios.get("http://localhost:5000/rights?_embed=children").then(res => {
             // console.log(res.data)
             setRightList(res.data)
         })
@@ -107,15 +96,33 @@ export default function RoleList() {
         }))
         //patch
 
-        axios.patch(`/roles/${currentId}`, {
+        axios.patch(`http://localhost:5000/roles/${currentId}`, {
             rights: currentRights
         })
+    }
+
+    const handleCancel = () => {
+        setisModalVisible(false)
+    }
+
+    const onCheck = (checkKeys) => {
+        console.log(checkKeys.checked)
+        setcurrentRights(checkKeys.checked)
     }
 
     return (
         <div>
             <Table dataSource={dataSource} columns={columns}
                 rowKey={(item) => item.id} ></Table>
+            <Modal title="权限分配" visible={isModalVisible} onOk={handleOk} onCancel={handleCancel}>
+                <Tree
+                    checkable
+                    checkedKeys={currentRights}
+                    onCheck={onCheck}
+                    checkStrictly={true}
+                    treeData={rightList}
+                />
+            </Modal>
         </div>
     )
 }

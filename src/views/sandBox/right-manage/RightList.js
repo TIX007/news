@@ -21,21 +21,6 @@ export default function RightList() {
         })
     }, [])
 
-    // const dataSource = [
-    //     {
-    //         key: '1',
-    //         name: '胡彦斌',
-    //         age: 32,
-    //         address: '西湖区湖底公园1号',
-    //     },
-    //     {
-    //         key: '2',
-    //         name: '胡彦祖',
-    //         age: 42,
-    //         address: '西湖区湖底公园1号',
-    //     },
-    // ];
-
     const columns = [
         {
             title: 'ID',
@@ -77,11 +62,11 @@ export default function RightList() {
         setdataSource([...dataSource])
 
         if (item.grade === 1) {
-            axios.patch(`/rights/${item.id}`, {
+            axios.patch(`http://localhost:5000/rights/${item.id}`, {
                 pagepermisson: item.pagepermisson
             })
         } else {
-            axios.patch(`/children/${item.id}`, {
+            axios.patch(`http://localhost:5000/children/${item.id}`, {
                 pagepermisson: item.pagepermisson
             })
         }
