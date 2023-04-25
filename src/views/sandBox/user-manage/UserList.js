@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Table, Button, Modal, Switch } from 'antd'
 import axios from 'axios'
 import { DeleteOutlined, EditOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
+import UserForm from '../../../components/user-manage/index'
 const { confirm } = Modal
 
 export default function UserList() {
@@ -18,9 +19,28 @@ export default function UserList() {
     const updateForm = useRef(null)
 
     useEffect(() => {
+        const roleObj = {
+            "1": "superadmin",
+            "2": "admin",
+            "3": "editor"
+        }
         axios.get("http://localhost:5000/users?_expand=role").then(res => {
             console.log(res.data)
             setdataSource(res.data)
+        })
+    }, [])
+
+    useEffect(() => {
+        axios.get("http://localhost:5000/regions").then(res => {
+            const list = res.data
+            setregionList(list)
+        })
+    }, [])
+
+    useEffect(() => {
+        axios.get("http://localhost:5000/roles").then(res => {
+            const list = res.data
+            setroleList(list)
         })
     }, [])
 
@@ -28,6 +48,25 @@ export default function UserList() {
         {
             title: '区域',
             dataIndex: 'region',
+            filters: [
+                ...regionList.map(item => ({
+                    text: item.title,
+                    value: item.value
+                })),
+                {
+                    text: "全球",
+                    value: "全球"
+                }
+
+            ],
+            // onFilter: (value, record) => record.region.indexOf(value) === 0,
+            onFilter: (value, item) => {
+                if (value === "全球") {
+                    return item.region === ""
+                }
+                return item.region === value
+            },
+
             render: (region) => {
                 return <b>{region === '' ? '全球' : region}</b>
             }
@@ -36,7 +75,7 @@ export default function UserList() {
             title: '角色名称',
             dataIndex: 'role',
             render: (role) => {
-                return role.roleName
+                return role?.roleName
             }
         },
         {
@@ -96,7 +135,7 @@ export default function UserList() {
             // content: 'Some descriptions',
             onOk() {
                 console.log('OK');
-                // deleteMethod(item)
+                deleteMethod(item)
             },
             onCancel() {
                 //   console.log('Cancel');
@@ -104,11 +143,90 @@ export default function UserList() {
         });
     }
 
+    //删除
+    const deleteMethod = (item) => {
+        // console.log(item)
+        // 当前页面同步状态 + 后端同步
+        setdataSource(dataSource.filter(data => data.id !== item.id))
 
+        axios.delete(`/users/${item.id}`)
+    }
+
+    const addFormOK = () => {
+        addForm.current.validateFields().then(value => {
+            console.log(value, 'values');
+            setisAddVisible(false)
+
+            addForm.current.resetFields()
+            //post到后端，生成id，再设置 datasource, 方便后面的删除和更新
+            axios.post(`http://localhost:5000/users`, {
+                ...value,
+                "roleState": true,
+                "default": false,
+            }).then(res => {
+                console.log(res.data)
+                setdataSource([...dataSource, {
+                    ...res.data,
+                    role: roleList.filter(item => item.id === value.roleId)[0]
+                }])
+            })
+        }).catch(err => {
+            console.log(err)
+        })
+    }
+
+    const updateFormOK = () => {
+        updateForm.current.validateFields().then(value => {
+            // console.log(value)
+            setisUpdateVisible(false)
+
+            setdataSource(dataSource.map(item => {
+                if (item.id === current.id) {
+                    return {
+                        ...item,
+                        ...value,
+                        role: roleList.filter(data => data.id === value.roleId)[0]
+                    }
+                }
+                return item
+            }))
+            setisUpdateDisabled(!isUpdateDisabled)
+
+            axios.patch(`/users/${current.id}`, value)
+        })
+    }
 
     return (
         <div>
+            <Button type="primary" onClick={() => { setisAddVisible(true) }}>添加用户</Button>
+
             <Table columns={columns} dataSource={dataSource} rowKey={(item) => item.id} pagination={{ pageSize: 5 }} />
+            <Modal
+                visible={isAddVisible}
+                title="添加用户"
+                okText="确定"
+                cancelText="取消"
+                onCancel={() => {
+                    setisAddVisible(false)
+                }}
+                onOk={() => addFormOK()}
+            >
+                <UserForm regionList={regionList} roleList={roleList} ref={addForm}></UserForm>
+            </Modal>
+
+            <Modal
+                visible={isUpdateVisible}
+                title="更新用户"
+                okText="更新"
+                cancelText="取消"
+                onCancel={() => {
+                    setisUpdateVisible(false)
+                    setisUpdateDisabled(!isUpdateDisabled)
+                }}
+                onOk={() => updateFormOK()}
+            >
+                <UserForm regionList={regionList} roleList={roleList} ref={updateForm} isUpdateDisabled={isUpdateDisabled} isUpdate={true}></UserForm>
+            </Modal>
         </div>
     )
 }
